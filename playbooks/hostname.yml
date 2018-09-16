@@ -1,0 +1,43 @@
+---
+  - hosts: all
+    become: true
+    tasks:
+      - name: install tools
+        apt: name={{item}} state=present update_cache=yes
+        with_items:
+          - python-httplib2
+          - python-setuptools
+          - unzip
+          - tmux
+          - nginx
+      - name: installing supervisor
+        command: easy_install supervisor
+        
+      - name: Unarchive consul package that needs to be downloaded
+        unarchive:
+          src: https://releases.hashicorp.com/consul/0.8.0/consul_0.8.0_linux_amd64.zip
+          dest: /opt/
+          remote_src: yes
+      - name: Unarchive consul web-ui that needs to be downloaded (added in 2.0)
+        unarchive:
+          src: https://releases.hashicorp.com/consul/0.8.0/consul_0.8.0_web_ui.zip
+          dest: /opt/
+          remote_src: yes
+
+      - name: Create teseuser
+        user:
+          name: testuser
+          password: '$6$xiqPvco4uHHFK$FcOTIXakzsXMSWE/ynIpwSv2PV81vM3Zlblm4yjkUJUy9Gny.lm8GW29edln9WtdBuNrY4w7bmVyYW.DjfXS//'
+          shell: /bin/bash
+          update_password: on_create
+        register: testuser
+      - name: Force testuser to change password
+        shell: chage -d 0 testuser
+        when: testuser.changed
+  
+      - name: set timezone to Asia/Kolkata
+        timezone:
+          name: Asia/Kolkata
+  
+      - name: copy demo app source
+        copy: src=/var/local/test.text dest=/home/testuser/ mode=0755
